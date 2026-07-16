@@ -1,0 +1,11 @@
+# This tool uses only Python standard library modules.
+# The network scan feature relies on the external 'nmap' binary being
+# installed and available on PATH (not a pip package).
+#
+# Install nmap:
+#   Linux (Debian/Ubuntu): sudo apt install nmap
+#   macOS (Homebrew):      brew install nmap
+#   Windows:               https://nmap.org/download.html
+#
+# Optional (Linux only, improves wired detection):
+#   sudo apt install v4l-utils
