@@ -28,9 +28,12 @@ A cross-platform command-line tool that detects **both wired (USB) and wireless 
 
 **Wireless / IP cameras** are detected by scanning your local network:
 
-- Ping-sweeps your subnet using `nmap`
+- Ping-sweeps your subnet using `nmap`, then port-scans all live hosts in a single call
 - Checks common camera ports (`80`, `554` RTSP, `8000`, `8080`, `8443`)
 - Cross-references device MAC address prefixes against known camera vendors (Hikvision, Dahua, Foscam, TP-Link/Tapo, Wyze, Ring, etc.)
+- Sends an ONVIF WS-Discovery multicast probe to find cameras that announce themselves
+
+Hosts are reported with a confidence level. **High**: camera-vendor MAC, RTSP port 554 open, or an ONVIF reply. **Low**: only generic web ports (80/8080/...) open, which routers, NAS boxes and printers also do; these are hidden unless you pass `--include-possible`.
 
 > This tool only inspects devices already on your own network — it never attempts to log into, stream from, or exploit any camera it finds.
 
@@ -65,7 +68,13 @@ python3 main.py
 | `--usb-only` | Only scan for wired/USB cameras |
 | `--network-only` | Only scan for wireless/network cameras |
 | `--subnet 192.168.1.0/24` | Manually specify the subnet to scan |
+| `--include-possible` | Also list low-confidence hosts (only generic web ports open) |
+| `--timeout 300` | Time limit in seconds for the nmap scan (default 120) |
 | `--json` | Print results as JSON instead of a table |
+
+`--usb-only` and `--network-only` are mutually exclusive. The exit code is 1 if the network scan could not run (e.g. `nmap` missing, timeout, invalid subnet).
+
+Run the parser tests with `python3 -m unittest discover -s tests`.
 
 ## Example output
 
@@ -90,6 +99,7 @@ camera-detector/
 ├── detect_usb.py       # wired camera detection (USB/UVC devices)
 ├── detect_network.py   # wireless/IP camera detection (LAN scan)
 ├── main.py             # CLI entry point
+├── tests/              # unit tests for the output parsers / classifier
 ├── requirements.txt
 └── README.md
 ```
