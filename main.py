@@ -20,27 +20,29 @@ from detect_usb import detect_usb_cameras
 from detect_network import detect_network_cameras
 
 
-def print_table(usb_cams, net_cams):
-    print("\n=== Wired (USB) Cameras ===")
-    if usb_cams:
-        for c in usb_cams:
-            print(f"  - {c['name']}  [{c['path']}]")
-    else:
-        print("  None found.")
+def print_table(usb_cams, net_cams, show_usb=True, show_net=True):
+    if show_usb:
+        print("\n=== Wired (USB) Cameras ===")
+        if usb_cams:
+            for c in usb_cams:
+                print(f"  - {c['name']}  [{c['path']}]")
+        else:
+            print("  None found.")
 
-    print("\n=== Wireless (Network/IP) Cameras ===")
-    if isinstance(net_cams, dict) and net_cams.get("error") == "nmap_not_found":
-        print("  Skipped: 'nmap' is not installed on this machine.")
-        print("  Install it with: sudo apt install nmap  (Linux)")
-        print("                   brew install nmap      (macOS)")
-        print("                   https://nmap.org/download.html (Windows)")
-    elif net_cams:
-        for c in net_cams:
-            ports = ", ".join(str(p) for p in c["open_ports"]) or "none detected"
-            print(f"  - {c['ip']}  MAC: {c['mac'] or 'unknown'}  "
-                  f"Vendor: {c['vendor'] or 'unknown'}  Open ports: {ports}")
-    else:
-        print("  None found.")
+    if show_net:
+        print("\n=== Wireless (Network/IP) Cameras ===")
+        if isinstance(net_cams, dict) and net_cams.get("error") == "nmap_not_found":
+            print("  Skipped: 'nmap' is not installed on this machine.")
+            print("  Install it with: sudo apt install nmap  (Linux)")
+            print("                   brew install nmap      (macOS)")
+            print("                   https://nmap.org/download.html (Windows)")
+        elif net_cams:
+            for c in net_cams:
+                ports = ", ".join(str(p) for p in c["open_ports"]) or "none detected"
+                print(f"  - {c['ip']}  MAC: {c['mac'] or 'unknown'}  "
+                      f"Vendor: {c['vendor'] or 'unknown'}  Open ports: {ports}")
+        else:
+            print("  None found.")
     print()
 
 
@@ -69,7 +71,9 @@ def main():
         }
         print(json.dumps(output, indent=2))
     else:
-        print_table(usb_cams, net_cams)
+        print_table(usb_cams, net_cams,
+                    show_usb=not args.network_only,
+                    show_net=not args.usb_only)
 
 
 if __name__ == "__main__":

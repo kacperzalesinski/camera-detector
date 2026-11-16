@@ -9,11 +9,11 @@ import subprocess
 import re
 
 
-def _run(cmd):
+def _run(cmd, timeout=10):
     """Run a shell command and return stdout as text, or '' on failure."""
     try:
         result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=10, shell=isinstance(cmd, str)
+            cmd, capture_output=True, text=True, timeout=timeout, shell=isinstance(cmd, str)
         )
         return result.stdout
     except Exception:
@@ -77,19 +77,27 @@ def detect_macos():
 
 def detect_windows():
     cameras = []
+    # Query each class separately: Get-PnpDevice throws a terminating error if
+    # *any* class in a -Class list has no devices (e.g. no "Image" devices),
+    # which previously made the whole query return nothing.
     ps_cmd = (
-        "Get-PnpDevice -Class Camera,Image -Status OK | "
-        "Select-Object -Property FriendlyName,InstanceId | Format-Table -HideTableHeaders"
+        "foreach ($c in 'Camera','Image') { "
+        "Get-PnpDevice -Class $c -PresentOnly -ErrorAction SilentlyContinue | "
+        "ForEach-Object { $_.FriendlyName + '|' + $_.InstanceId } }"
     )
-    out = _run(["powershell", "-NoProfile", "-Command", ps_cmd])
+    # PowerShell + Get-PnpDevice can take ~10s on a cold start, so allow more
+    # than the default 10s timeout (which caused intermittent empty results).
+    out = _run(["powershell", "-NoProfile", "-Command", ps_cmd], timeout=60)
     for line in out.splitlines():
         line = line.strip()
-        if line:
-            cameras.append({
-                "name": line,
-                "path": "N/A (see Device Manager for instance ID)",
-                "type": "USB (wired)",
-            })
+        if not line:
+            continue
+        name, _, instance_id = line.partition("|")
+        cameras.append({
+            "name": name.strip() or "Unknown camera",
+            "path": instance_id.strip() or "N/A",
+            "type": "USB (wired)",
+        })
     return cameras
 
 
